@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:jersey="http://www.mulesoft.org/schema/mule/jersey" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:management="http://www.mulesoft.org/schema/mule/management"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jersey http://www.mulesoft.org/schema/mule/jersey/current/mule-jersey.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/management http://www.mulesoft.org/schema/mule/management/current/mule-management.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <spring:beans>
+        <spring:bean id="cacheManager" name="cacheManager" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"/>
+        <spring:bean id="cache" name="cache" class="org.springframework.cache.ehcache.EhCacheFactoryBean">
+            <spring:property name="cacheManager" ref="cacheManager"/>
+            <spring:property name="cacheName" value="dbCache"/>
+            <spring:property name="maxElementsInMemory" value="10000"/>
+            <spring:property name="eternal" value="false"/>
+            <spring:property name="timeToIdle" value="120"/>
+            <spring:property name="timeToLive" value="120"/>
+            <spring:property name="overflowToDisk" value="true"/>
+            <spring:property name="maxElementsOnDisk" value="10000000"/>
+            <spring:property name="diskPersistent" value="false"/>
+            <spring:property name="diskExpiryThreadIntervalSeconds" value="120"/>
+            <spring:property name="memoryStoreEvictionPolicy" value="LRU"/>
+        </spring:bean>
+        <spring:bean id="gatewayCache" scope="prototype" class="mca.communication.cache.CommunicationGatewayCacheStrategy">
+        	<spring:property name="cache">
+            	<spring:ref local="cache"/>
+        	</spring:property>
+        	<spring:property name="action" value="Read"></spring:property>
+    	</spring:bean>
+    	<spring:bean id="gatewayWriteCache" scope="prototype" class="mca.communication.cache.CommunicationGatewayCacheStrategy">
+        	<spring:property name="cache">
+            	<spring:ref local="cache"/>
+        	</spring:property>
+        	<spring:property name="action" value="Write"></spring:property>
+    	</spring:bean>
+    </spring:beans>
+    
+    <jms:activemq-connector name="Active_MQ" brokerURL="tcp://localhost:61616" validateConnections="true" doc:name="Active MQ"/>
+    <http:request-config name="HTTP_Request_Configuration" host="api.openweathermap.org" port="80" doc:name="HTTP Request Configuration"/>
+    <jms:activemq-connector name="Active_MQ1" brokerURL="tcp://localhost:61616" validateConnections="true" doc:name="Active MQ"/>
+	<interceptor-stack name="default">
+	    <logging-interceptor/>
+	</interceptor-stack>
+    <db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" password="root" database="gateway_exception_data" doc:name="MySQL Configuration"/>
+   	<queued-asynchronous-processing-strategy name="allow500Threads" maxThreads="500" doc:name="Queued Asynchronous Processing Strategy"/>
+    <http:request-config name="HTTP_Request_Configuration1" host="qa.mcadigitalmedia.com" port="80" doc:name="HTTP Request Configuration" connectionIdleTimeout="300000"/>
+    
+    <http:listener-config name="HTTP_Listener_Configuration" host="localhost" port="8085" doc:name="HTTP Listener Configuration"/>
+    <ee:object-store-caching-strategy name="Data_Caching_Strategy" doc:name="Caching Strategy" keyGenerationExpression="#[sessionVars.sms]"/>
+    <ee:object-store-caching-strategy name="Caching_Strategy" keyGenerationExpression="#[sessionVars.sms]" doc:name="Caching Strategy"/>
+    <ee:object-store-caching-strategy name="Caching_Strategy1" doc:name="Caching Strategy" keyGenerationExpression="#[sessionVars.sms]">
+        <custom-object-store class="mca.communication.cache.CommunicationGatewayObjectStore">
+        	<spring:property name="cache" ref="cache"/>
+    	</custom-object-store>
+    </ee:object-store-caching-strategy>
+    <flow processingStrategy="synchronous" name="samplemuleprojectFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/save" doc:name="HTTP"/>
+        <component class="mca.communication.InputBufferMessageReader" doc:name="InputStream to XML"/>
+        <message-properties-transformer scope="session" doc:name="Set Session Variables">
+                <!-- Propagate 'myFooProperty' from the inbound to outbound -->
+            <add-message-property key="number" value="#[message.payload.getAsString('number')]"/>
+            <add-message-property key="sms" value="#[message.payload.getAsString('message')]"/>
+            <add-message-property key="provider" value="#[message.payload.getAsString('provider')]"/>
+            <add-message-property key="customerNumber" value="#[message.payload.getAsString('customerNumber')]"/>
+        </message-properties-transformer>
+        <logger message="#[&quot;Request for the user with number &quot; + sessionVars.number]" level="INFO" doc:name="Logger"/>
+        <mulexml:object-to-xml-transformer doc:name="Object to XML" doc:description="Need to convert into xml as it is giving non serializable exception while persisting object."/>
+        <jms:outbound-endpoint queue="MCA.GATEWAY.AUDITQ" connector-ref="Active_MQ1" doc:name="AuditQ">
+            <jms:transaction action="ALWAYS_BEGIN"/>
+        </jms:outbound-endpoint>
+        <set-payload value="#[sessionVars.sms]" doc:name="Set Variable"/>
+        <component doc:name="Read Cache">
+        	<spring-object bean="gatewayCache"/>
+       	</component>
+        <choice doc:name="Is Cached">
+            <when expression="#[message.payload == null]">
+                <logger message="#[&quot;Retrieve static data from DB &quot; + sessionVars.number]" level="INFO" doc:name="Retrieve From DB"/>
+                <db:select config-ref="MySQL_Configuration" doc:name="Retrieve Static Data">
+                    <db:parameterized-query><![CDATA[SELECT p.value FROM gateway_rule.property p where p.name = #[sessionVars.sms]]]></db:parameterized-query>
+                </db:select>
+                <component doc:name="Write Cache">
+        			<spring-object bean="gatewayWriteCache"/>
+       			</component>
+            </when>
+            <otherwise>
+                <logger message="#[&quot;Reading data from cached - &quot; + sessionVars.number]" level="INFO" doc:name="Default"/>
+            </otherwise>
+        </choice>
+        <logger message="#[&quot;User number  : &quot; + sessionVars.number + &quot; message : &quot; + sessionVars.sms]" level="INFO" doc:name="Logger"/>
+        <scripting:component doc:name="Validate Message">
+            <scripting:script engine="Groovy"><![CDATA[def validationMessage = "Validation_Success";
+				if (message.payload.value != null && !message.payload.value.empty) {
+					for (propertyKeyValues in message.payload.value) {
+						def keyValues = propertyKeyValues.tokenize("|")
+						for (property in keyValues) {
+							if (sessionVars[property]  == null || sessionVars[property].empty) {
+								validationMessage = "Validation_Error";
+								break
+							}
+						}
+					}
+				} else {
+					validationMessage = "Validation_Error";
+				}
+				message.setOutboundProperty("validationMessage", validationMessage)]]></scripting:script>
+        </scripting:component>
+
+        <choice doc:name="Is Valid Message">
+            <when expression="#[message.outboundProperties.get(&quot;validationMessage&quot;) == &quot;Validation_Error&quot;]">
+                <logger message="#[&quot; Validation Failed for MSISND &quot; + sessionVars.number]" level="INFO" doc:name="Error Log"/>
+
+                <flow-ref name="validation-error-auditing" doc:name="Validation Error"/>
+            </when>
+            <otherwise>
+                <logger message="#[&quot;Validation Success for MSISDN : &quot; + sessionVars.number]" level="INFO" doc:name="Success Log"/>
+
+                <flow-ref name="validation-message-success-flow" doc:name="Validation Success"/>
+            </otherwise>
+        </choice>
+
+
+        <component class="mca.communication.core.GatewayReply" doc:name="Gateway Reply"/>
+        <logger message="#[&quot; Reply has been send to the user with MSISDN : &quot; + sessionVars.number]" level="INFO" doc:name="Logger"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+	        <set-payload value="The request cannot be processed, the error is #[exception.getSummaryMessage()]" doc:name="Set Payload"/>
+	        	<jms:outbound-endpoint queue="ExceptionQueue"  connector-ref="Active_MQ" doc:name="ExceptionQ">
+	                <jms:transaction action="NOT_SUPPORTED"/>
+	            </jms:outbound-endpoint>
+        </catch-exception-strategy>
+    </flow>
+    <sub-flow name="validation-error-auditing">
+        <set-payload value="Validation Error #[message]" doc:name="Set Validation Error"/>
+        <jms:outbound-endpoint queue="MCA.GATEWAY.AUDITQ" connector-ref="Active_MQ" doc:name="AuditQ">
+            <jms:transaction action="NOT_SUPPORTED"/>
+        </jms:outbound-endpoint>
+    </sub-flow>
+    <sub-flow name="validation-message-success-flow">
+        <set-payload doc:name="Set Validation Success" value="Basic message validation successfull #[message]"/>
+
+        <jms:outbound-endpoint doc:name="AuditQ" connector-ref="Active_MQ" queue="MCA.GATEWAY.AUDITQ">
+            <jms:transaction action="NOT_SUPPORTED"/>
+        </jms:outbound-endpoint>
+        <http:request config-ref="HTTP_Request_Configuration1" path="VendorSelfCareWebApi/api/Customer/GetCustomerDetailsByCustomerNumber" method="GET" doc:name="Get User Details">
+            <http:request-builder>
+                <http:query-param paramName="dataSource" value="Kenya_QA"/>
+                <http:query-param paramName="customerNumber" value="46871316"/>
+                <http:query-param paramName="currencyCode" value="KSH"/>
+                <http:query-param paramName="businessUnit" value="DSTV"/>
+                <http:query-param paramName="vendorCode" value="SMADEALER"/>
+                <http:query-param paramName="language" value="English"/>
+                <http:query-param paramName="ipAddress" value="172.16.251.4"/>
+
+            </http:request-builder>
+        </http:request>
+        <component class="mca.communication.InputBufferMessageReader" doc:name="InputStream to JSON"/>
+
+    </sub-flow>
+</mule>

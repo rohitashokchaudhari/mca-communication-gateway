@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+    <flow name="gateway-exceptionFlow">
+        <jms:inbound-endpoint queue="ExceptionQueue" connector-ref="Active_MQ" doc:name="Exeption Queue">
+            <jms:transaction action="NOT_SUPPORTED"/>
+        </jms:inbound-endpoint>
+        <logger message="#[&quot;Exception while processing request with MSISDN number  &quot; + sessionVars.number]" level="INFO" doc:name="Logger"/>
+        <db:insert config-ref="MySQL_Configuration" doc:name="Exception DB">
+            <db:parameterized-query><![CDATA[insert into gateway_exception_data.gateway_exception (exception,msisdn,provider,short_message) values (#[message.payload],#[sessionVars.number],#[sessionVars.provider],#[sessionVars.sms]);]]></db:parameterized-query>
+        </db:insert>
+    </flow>
+</mule>

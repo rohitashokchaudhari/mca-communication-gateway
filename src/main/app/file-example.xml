@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd">
+    <data-mapper:config name="String_To_Map" transformationGraphPath="string_to_map.grf" doc:name="String_To_Map"/>
+    <file:file-to-byte-array-transformer name="File_to_Byte_Array" doc:name="File to Byte Array"/>
+    <custom-transformer class="mca.communication.ExcelFileReader" name="Java" doc:name="Java"/>
+    <flow name="file-exampleFlow">
+        <file:inbound-endpoint path="E:\Project\MultiChoice\Mule-Example\SampleFile" responseTimeout="10000" doc:name="File"/>
+        <transformer ref="Java" doc:name="Transformer Reference"/>
+        <logger message="#[&quot;this is file message - &quot;+message.payload]" level="INFO" doc:name="Logger"/>
+        <component class="mca.communication.ExecuteGatewayMessage" doc:name="Java"/>
+    </flow>
+</mule>

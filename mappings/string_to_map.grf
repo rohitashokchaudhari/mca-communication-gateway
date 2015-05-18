@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><Graph __version="3.5.0" author="s.zende" created="Mon Apr 06 18:35:07 CAT 2015" description="String To Map" guiVersion="3.4.4.P" id="1428338943325" licenseCode="Unlicensed" licenseType="Unknown" modified="Mon Apr 06 18:35:07 CAT 2015" modifiedBy="s.zende" name="String_To_Map" revision="1.0" showComponentDetails="false">
+<Global>
+<Metadata __index="0" __referenceCounter="0" __sourcePath="{}/object" _dataStructure="OBJECT" _id="__id" _type="Output" id="213701b9-1027-4f00-8c32-bbbf7e490032">
+<Record fieldDelimiter="," name="object" recordDelimiter="\n\\|\r\n\\|\r" type="delimited">
+<Field __artificialType="_id" __systemManaged="true" name="__id" type="string"/>
+<Field __index="0" __sourcePath="{}/object/text_x0028_x0029" containerType="SINGLE" label="text()" name="text" type="string"/>
+</Record>
+</Metadata>
+<Metadata __index="0" __referenceCounter="0" __sourcePath="{}/object" _dataStructure="OBJECT" _id="__id" _type="Input" id="f374745b-1ab7-4d90-9118-0d1d8520f551">
+<Record fieldDelimiter="," name="String" recordDelimiter="\n\\|\r\n\\|\r" type="delimited">
+<Field __artificialType="_id" __systemManaged="true" name="__id" type="string"/>
+<Field __index="0" __sourcePath="{}/object/text()" containerType="SINGLE" label="text()" name="text" type="string"/>
+</Record>
+</Metadata>
+<Dictionary>
+<Entry id="DictionaryEntry0" input="true" name="inputPayload" output="false" type="object"/>
+<Entry id="DictionaryEntry1" input="false" name="outputPayload" output="true" type="object"/>
+</Dictionary>
+</Global>
+<Phase number="0">
+<Node enabled="enabled" fileURL="dict:inputPayload" guiName="Pojo READER" guiX="20" guiY="20" id="BEAN_READER0" type="BEAN_READER">
+<attr name="_data_format"><![CDATA[JAVA]]></attr>
+<attr name="schema"><![CDATA[<?xml version="1.0" encoding="UTF-8"?><schema-object>
+  <typed-object-ref type-ref="java.lang.String"/>
+  <typed-object type="java.lang.String"/>
+</schema-object>
+]]></attr>
+<attr name="__metadata"><![CDATA[true]]></attr>
+</Node>
+<Node cacheInMemory="true" enabled="enabled" fileURL="dict:outputPayload" guiName="Map&lt;k,v&gt; WRITER" guiX="900" guiY="20" id="MAP_WRITER0" type="MAP_WRITER">
+<attr name="_data_format"><![CDATA[MAP]]></attr>
+</Node>
+</Phase>
+</Graph>
